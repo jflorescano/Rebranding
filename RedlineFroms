@@ -1,0 +1,179 @@
+Sub RedlineForms()
+
+    Dim folderPath As String
+    Dim saveFolderPath As String
+    Dim fileName As String
+    Dim doc As Document
+    Dim sec As Section
+    Dim hdrftr As HeaderFooter
+    Dim textoEncabezado As String
+    Dim textoPiePagina As String
+    Dim rng As Range
+    Dim fDialog As FileDialog
+    Dim newFileName As String
+    Dim textoTeleflex As String
+    
+    ' Establecer los textos a buscar
+    textoEncabezado = "Hudson Respiratory Care Tecate"
+    textoPiePagina = "EO"
+    textoTeleflex = "Teleflex Tecate"
+
+    ' Solicitar al usuario que seleccione la carpeta con los documentos
+    Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
+    If fDialog.Show = -1 Then
+        folderPath = fDialog.SelectedItems(1)
+    Else
+        MsgBox "No se seleccionó ninguna carpeta. El proceso se cancela."
+        Exit Sub
+    End If
+    
+    ' Solicitar al usuario que seleccione la carpeta de destino para guardar los documentos
+    Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
+    If fDialog.Show = -1 Then
+        saveFolderPath = fDialog.SelectedItems(1)
+    Else
+        MsgBox "No se seleccionó ninguna carpeta de destino. El proceso se cancela."
+        Exit Sub
+    End If
+
+    ' Buscar y reemplazar en cada documento de la carpeta
+    fileName = Dir(folderPath & "\*.docx") ' También puedes usar *.doc para archivos más antiguos
+
+    Do While fileName <> ""
+        ' Abrir el documento
+        Set doc = Documents.Open(folderPath & "\" & fileName, ReadOnly:=False, Visible:=False)
+        
+        ' ---------------------------------------------------
+        ' 1. Buscar en el cuerpo del documento
+        ' ---------------------------------------------------
+        With doc.Content.Find
+            .Text = textoEncabezado
+            ' Solo reemplazar si aún no contiene "Teleflex Tecate"
+            .Replacement.Text = textoEncabezado & " Teleflex Tecate"
+            .Forward = True
+            .Wrap = wdFindContinue
+            .Format = True
+            .Replacement.Font.Color = wdColorRed ' Cambiar a rojo
+            .Replacement.Font.StrikeThrough = True
+            .MatchWholeWord = False
+            .MatchCase = False
+            ' Ejecutar el reemplazo solo si no contiene el texto añadido
+            If InStr(doc.Content.Text, textoEncabezado & " Teleflex Tecate") = 0 Then
+                .Execute Replace:=wdReplaceAll
+            End If
+        End With
+
+        ' ---------------------------------------------------
+        ' 2. Buscar en los encabezados de todas las secciones
+        ' ---------------------------------------------------
+        For Each sec In doc.Sections
+            For Each hdrftr In sec.Headers
+                Set rng = hdrftr.Range
+                With rng.Find
+                    .Text = textoEncabezado
+                    .Replacement.Text = textoEncabezado & " Teleflex Tecate"
+                    .Forward = True
+                    .Wrap = wdFindContinue
+                    .Format = True
+                    .Replacement.Font.Color = wdColorRed ' Cambiar a rojo
+                    .Replacement.Font.StrikeThrough = True
+                    .MatchWholeWord = False
+                    .MatchCase = False
+                    ' Ejecutar el reemplazo solo si no contiene el texto añadido
+                    If InStr(rng.Text, textoEncabezado & " Teleflex Tecate") = 0 Then
+                        .Execute Replace:=wdReplaceAll
+                    End If
+                End With
+            Next hdrftr
+        Next sec
+
+        ' ---------------------------------------------------
+        ' 3. Buscar en los pies de página de todas las secciones
+        ' ---------------------------------------------------
+        For Each sec In doc.Sections
+            For Each hdrftr In sec.Footers
+                Set rng = hdrftr.Range
+                With rng.Find
+                    .Text = "EO"
+                    .Forward = True
+                    .Wrap = wdFindContinue
+                    .Format = False
+                    If .Execute Then
+                        ' Expandir el rango 8 caracteres después de "EO"
+                        rng.MoveEnd wdCharacter, 8
+                        ' Cambiar los siguientes 8 caracteres a rojo y tacharlos
+                        rng.Font.Color = wdColorRed
+                        rng.Font.StrikeThrough = True
+                        
+                        ' Escribir texto después de los 8 caracteres
+                        rng.Collapse wdCollapseEnd
+                        rng.InsertAfter " tu texto aquí"
+                    End If
+                End With
+            Next hdrftr
+
+        Next sec
+
+        ' ---------------------------------------------------
+        ' 4. Buscar "Teleflex Tecate" y cambiar a color azul
+        ' ---------------------------------------------------
+        ' Buscar en el cuerpo del documento
+        With doc.Content.Find
+            .Text = textoTeleflex
+            .Replacement.Text = textoTeleflex
+            .Forward = True
+            .Wrap = wdFindContinue
+            .Format = True
+            .Replacement.Font.Color = wdColorBlue ' Cambiar a azul
+            .Execute Replace:=wdReplaceAll
+        End With
+        
+        ' Buscar en los encabezados de todas las secciones
+        For Each sec In doc.Sections
+            For Each hdrftr In sec.Headers
+                Set rng = hdrftr.Range
+                With rng.Find
+                    .Text = textoTeleflex
+                    .Replacement.Text = textoTeleflex
+                    .Forward = True
+                    .Wrap = wdFindContinue
+                    .Format = True
+                    .Replacement.Font.Color = wdColorBlue ' Cambiar a azul
+                    .Execute Replace:=wdReplaceAll
+                End With
+            Next hdrftr
+        Next sec
+        
+        ' Buscar en los pies de página de todas las secciones
+        For Each sec In doc.Sections
+            For Each hdrftr In sec.Footers
+                Set rng = hdrftr.Range
+                With rng.Find
+                    .Text = textoTeleflex
+                    .Replacement.Text = textoTeleflex
+                    .Forward = True
+                    .Wrap = wdFindContinue
+                    .Format = True
+                    .Replacement.Font.Color = wdColorBlue ' Cambiar a azul
+                    .Execute Replace:=wdReplaceAll
+                End With
+            Next hdrftr
+        Next sec
+
+        ' ---------------------------------------------------
+        ' 5. Guardar el documento con el prefijo "Redline"
+        ' ---------------------------------------------------
+        newFileName = Replace(fileName, ".docx", " Redline.docx")
+        doc.SaveAs2 fileName:=saveFolderPath & "\" & newFileName, FileFormat:=wdFormatXMLDocument
+
+        ' Cerrar el documento
+        doc.Close SaveChanges:=False
+
+        ' Obtener el siguiente archivo
+        fileName = Dir
+    Loop
+
+    MsgBox "Proceso completado y documentos guardados con el prefijo 'Redline'."
+
+End Sub
+

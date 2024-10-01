@@ -315,12 +315,12 @@ If doc.Tables.Count > 0 Then
                 If Len(myRange.Text) > 230 Then
                     ' Establecer el rango desde el carácter 231 hasta el final
                     Set myRange = myRange.Characters(231).Duplicate
-                    myRange.End = myRange.Start + 253 ' Extender el rango hasta el carácter 368 (137 caracteres más)
+                    myRange.End = myRange.Start + 353 ' Extender el rango hasta el carácter 368 (137 caracteres más)
                 
                     ' Cambiar la fuente de todo el rango desde el carácter 231 hasta el 368
                     With myRange.Font
                         .Name = "Times New Roman"
-                        .Size = 11 ' Cambia el tamaño de la fuente según sea necesario
+                        .Size = 9 ' Cambia el tamaño de la fuente según sea necesario
                     End With
                 End If
                 
@@ -349,3 +349,6 @@ End If
     
     MsgBox "Reemplazo completado y documentos guardados con sufijo 'Redline'."
 End Sub
+
+
+

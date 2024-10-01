@@ -17,6 +17,7 @@ Sub RedlineForms()
     textoEncabezado = "Hudson Respiratory Care Tecate"
     textoPiePagina = "EO"
     textoTeleflex = "Teleflex Tecate"
+    texto_EO = "EO# 0####"
 
     ' Solicitar al usuario que seleccione la carpeta con los documentos
     Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
@@ -37,7 +38,7 @@ Sub RedlineForms()
     End If
 
     ' Buscar y reemplazar en cada documento de la carpeta
-    fileName = Dir(folderPath & "\*.docx") ' También puedes usar *.doc para archivos más antiguos
+    fileName = Dir(folderPath & "\*.doc") ' También puedes usar *.doc para archivos más antiguos
 
     Do While fileName <> ""
         ' Abrir el documento
@@ -90,6 +91,10 @@ Sub RedlineForms()
         ' ---------------------------------------------------
         ' 3. Buscar en los pies de página de todas las secciones
         ' ---------------------------------------------------
+        Dim textoInsertado As Boolean ' Variable para verificar si ya se ha insertado el texto
+        
+        textoInsertado = False ' Inicialmente, no se ha insertado
+        
         For Each sec In doc.Sections
             For Each hdrftr In sec.Footers
                 Set rng = hdrftr.Range
@@ -98,21 +103,21 @@ Sub RedlineForms()
                     .Forward = True
                     .Wrap = wdFindContinue
                     .Format = False
-                    If .Execute Then
+                    ' Si encuentra "EO" y aún no se ha insertado el texto
+                    If .Execute And Not textoInsertado Then
                         ' Expandir el rango 8 caracteres después de "EO"
                         rng.MoveEnd wdCharacter, 8
                         ' Cambiar los siguientes 8 caracteres a rojo y tacharlos
                         rng.Font.Color = wdColorRed
                         rng.Font.StrikeThrough = True
-                        
-                        ' Escribir texto después de los 8 caracteres
-                        rng.Collapse wdCollapseEnd
-                        rng.InsertAfter " tu texto aquí"
+                        ' Insertar el texto "EO# 0####" una sola vez
+                        rng.InsertAfter " EO# 0####"
+                        textoInsertado = True ' Marcar que ya se insertó el texto
                     End If
                 End With
             Next hdrftr
-
         Next sec
+
 
         ' ---------------------------------------------------
         ' 4. Buscar "Teleflex Tecate" y cambiar a color azul
@@ -125,6 +130,7 @@ Sub RedlineForms()
             .Wrap = wdFindContinue
             .Format = True
             .Replacement.Font.Color = wdColorBlue ' Cambiar a azul
+            .Replacement.Font.StrikeThrough = False
             .Execute Replace:=wdReplaceAll
         End With
         
@@ -139,6 +145,7 @@ Sub RedlineForms()
                     .Wrap = wdFindContinue
                     .Format = True
                     .Replacement.Font.Color = wdColorBlue ' Cambiar a azul
+                    .Replacement.Font.StrikeThrough = False
                     .Execute Replace:=wdReplaceAll
                 End With
             Next hdrftr
@@ -155,13 +162,60 @@ Sub RedlineForms()
                     .Wrap = wdFindContinue
                     .Format = True
                     .Replacement.Font.Color = wdColorBlue ' Cambiar a azul
+                    .Replacement.Font.StrikeThrough = False
                     .Execute Replace:=wdReplaceAll
                 End With
             Next hdrftr
         Next sec
+        
+        
+        
+        
+        ' ---------------------------------------------------
+        ' 5. Buscar "Teleflex Tecate" y cambiar a color azul
+        ' ---------------------------------------------------
+        
+         ' Buscar en los encabezados de todas las secciones
+        For Each sec In doc.Sections
+            For Each hdrftr In sec.Headers
+                Set rng = hdrftr.Range
+                With rng.Find
+                    .Text = texto_EO
+                    .Replacement.Text = texto_EO
+                    .Forward = True
+                    .Wrap = wdFindContinue
+                    .Format = True
+                    .Replacement.Font.Color = wdColorBlue ' Cambiar a azul
+                    .Replacement.Font.StrikeThrough = False
+                    .Execute Replace:=wdReplaceAll
+                End With
+            Next hdrftr
+        Next sec
+        
+        ' Buscar en los pies de página de todas las secciones
+        For Each sec In doc.Sections
+            For Each hdrftr In sec.Footers
+                Set rng = hdrftr.Range
+                With rng.Find
+                    .Text = texto_EO
+                    .Replacement.Text = texto_EO
+                    .Forward = True
+                    .Wrap = wdFindContinue
+                    .Format = True
+                    .Replacement.Font.Color = wdColorBlue ' Cambiar a azul
+                    .Replacement.Font.StrikeThrough = False
+                    .Execute Replace:=wdReplaceAll
+                End With
+            Next hdrftr
+        Next sec
+        
+        
+        
+        
+    
 
         ' ---------------------------------------------------
-        ' 5. Guardar el documento con el prefijo "Redline"
+        ' 6. Guardar el documento con el prefijo "Redline"
         ' ---------------------------------------------------
         newFileName = Replace(fileName, ".docx", " Redline.docx")
         doc.SaveAs2 fileName:=saveFolderPath & "\" & newFileName, FileFormat:=wdFormatXMLDocument
@@ -176,4 +230,6 @@ Sub RedlineForms()
     MsgBox "Proceso completado y documentos guardados con el prefijo 'Redline'."
 
 End Sub
+
+
 

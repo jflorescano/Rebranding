@@ -36,7 +36,7 @@ Sub Final()
         Exit Sub
     End If
     ' Buscar y reemplazar en cada documento de la carpeta
-    fileName = Dir(folderPath & "\*.docx") ' Puedes cambiar el filtro a *.doc si es necesario
+    fileName = Dir(folderPath & "\*.doc") ' Puedes cambiar el filtro a *.doc si es necesario
     Do While fileName <> ""
         
         Dim fileNameUpper As String
@@ -171,7 +171,7 @@ If doc.Tables.Count > 0 Then
                 If Len(myRange.Text) > 230 Then
                     ' Establecer el rango desde el carácter 231 hasta el final
                     Set myRange = myRange.Characters(231).Duplicate
-                    myRange.End = myRange.Start + 253 ' Extender el rango hasta el carácter 368 (137 caracteres más)
+                    myRange.End = myRange.Start + 353 ' Extender el rango hasta el carácter 368 (137 caracteres más)
                 
                     ' Cambiar la fuente de todo el rango desde el carácter 231 hasta el 368
                     With myRange.Font

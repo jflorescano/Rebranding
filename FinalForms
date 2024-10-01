@@ -33,7 +33,7 @@ Sub FinalForms()
     End If
 
     ' Buscar y reemplazar en cada documento de la carpeta
-    fileName = Dir(folderPath & "\*.docx") ' También puedes usar *.doc para archivos más antiguos
+    fileName = Dir(folderPath & "\*.doc") ' También puedes usar *.doc para archivos más antiguos
 
     Do While fileName <> ""
         ' Abrir el documento

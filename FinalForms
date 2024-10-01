@@ -8,10 +8,11 @@ Sub FinalForms()
     Dim hdrftr As HeaderFooter
     Dim rng As Range
     Dim fDialog As FileDialog
+    Dim textoEncabezado As String
     Dim textoTeleflex As String
-    Dim pieDerecho As String
 
-    ' Establecer el texto del encabezado y del pie de página
+    ' Establecer los textos a buscar
+    textoEncabezado = "Hudson Respiratory Care Tecate"
     textoTeleflex = "Teleflex Tecate"
 
     ' Solicitar al usuario que seleccione la carpeta con los documentos
@@ -33,7 +34,7 @@ Sub FinalForms()
     End If
 
     ' Buscar y reemplazar en cada documento de la carpeta
-    fileName = Dir(folderPath & "\*.doc") ' También puedes usar *.doc para archivos más antiguos
+    fileName = Dir(folderPath & "\*.docx") ' También puedes usar *.doc para archivos más antiguos
 
     Do While fileName <> ""
         ' Abrir el documento
@@ -43,23 +44,28 @@ Sub FinalForms()
         ' 1. Cambiar el texto en el cuerpo del documento
         ' ---------------------------------------------------
         With doc.Content.Find
-            .Text = "Hudson Respiratory Care Tecate"
+            .Text = textoEncabezado
             .Replacement.Text = textoTeleflex
             .Forward = True
             .Wrap = wdFindContinue
             .Format = True
-            .Replacement.Font.Color = wdColorRed ' Cambiar a rojo
-            .Replacement.Font.StrikeThrough = True
             .Execute Replace:=wdReplaceAll
         End With
 
         ' ---------------------------------------------------
-        ' 2. Cambiar el encabezado de todas las secciones
+        ' 2. Cambiar el texto en los encabezados de todas las secciones (sin cambiar el resto del encabezado)
         ' ---------------------------------------------------
         For Each sec In doc.Sections
             For Each hdrftr In sec.Headers
                 Set rng = hdrftr.Range
-                rng.Text = textoTeleflex ' Reemplazar completamente el texto del encabezado
+                With rng.Find
+                    .Text = textoEncabezado
+                    .Replacement.Text = textoTeleflex
+                    .Forward = True
+                    .Wrap = wdFindContinue
+                    .Format = True
+                    .Execute Replace:=wdReplaceAll
+                End With
             Next hdrftr
         Next sec
 
@@ -94,10 +100,7 @@ Sub FinalForms()
         fileName = Dir ' Obtener el siguiente archivo
     Loop
 
-    MsgBox "Proceso completado."
+    MsgBox "Terminado:)"
 
 End Sub
-
-
-
 

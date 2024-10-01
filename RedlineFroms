@@ -217,7 +217,7 @@ Sub RedlineForms()
         ' ---------------------------------------------------
         ' 6. Guardar el documento con el prefijo "Redline"
         ' ---------------------------------------------------
-        newFileName = Replace(fileName, ".docx", " Redline.docx")
+        newFileName = Replace(fileName, ".doc", " Redline.docx")
         doc.SaveAs2 fileName:=saveFolderPath & "\" & newFileName, FileFormat:=wdFormatXMLDocument
 
         ' Cerrar el documento

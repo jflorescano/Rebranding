@@ -1,0 +1,103 @@
+Sub FinalForms()
+
+    Dim folderPath As String
+    Dim saveFolderPath As String
+    Dim fileName As String
+    Dim doc As Document
+    Dim sec As Section
+    Dim hdrftr As HeaderFooter
+    Dim rng As Range
+    Dim fDialog As FileDialog
+    Dim textoTeleflex As String
+    Dim pieDerecho As String
+
+    ' Establecer el texto del encabezado y del pie de página
+    textoTeleflex = "Teleflex Tecate"
+
+    ' Solicitar al usuario que seleccione la carpeta con los documentos
+    Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
+    If fDialog.Show = -1 Then
+        folderPath = fDialog.SelectedItems(1)
+    Else
+        MsgBox "No se seleccionó ninguna carpeta. El proceso se cancela."
+        Exit Sub
+    End If
+    
+    ' Solicitar al usuario que seleccione la carpeta de destino para guardar los documentos
+    Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
+    If fDialog.Show = -1 Then
+        saveFolderPath = fDialog.SelectedItems(1)
+    Else
+        MsgBox "No se seleccionó ninguna carpeta de destino. El proceso se cancela."
+        Exit Sub
+    End If
+
+    ' Buscar y reemplazar en cada documento de la carpeta
+    fileName = Dir(folderPath & "\*.docx") ' También puedes usar *.doc para archivos más antiguos
+
+    Do While fileName <> ""
+        ' Abrir el documento
+        Set doc = Documents.Open(folderPath & "\" & fileName, ReadOnly:=False, Visible:=False)
+        
+        ' ---------------------------------------------------
+        ' 1. Cambiar el texto en el cuerpo del documento
+        ' ---------------------------------------------------
+        With doc.Content.Find
+            .Text = "Hudson Respiratory Care Tecate"
+            .Replacement.Text = textoTeleflex
+            .Forward = True
+            .Wrap = wdFindContinue
+            .Format = True
+            .Replacement.Font.Color = wdColorRed ' Cambiar a rojo
+            .Replacement.Font.StrikeThrough = True
+            .Execute Replace:=wdReplaceAll
+        End With
+
+        ' ---------------------------------------------------
+        ' 2. Cambiar el encabezado de todas las secciones
+        ' ---------------------------------------------------
+        For Each sec In doc.Sections
+            For Each hdrftr In sec.Headers
+                Set rng = hdrftr.Range
+                rng.Text = textoTeleflex ' Reemplazar completamente el texto del encabezado
+            Next hdrftr
+        Next sec
+
+        ' ---------------------------------------------------
+        ' 3. Cambiar el pie de página derecho y reemplazar por "EO# 0####"
+        ' ---------------------------------------------------
+        For Each sec In doc.Sections
+            For Each hdrftr In sec.Footers
+                Set rng = hdrftr.Range
+                With rng.Find
+                    .Text = "EO"
+                    .Forward = True
+                    .Wrap = wdFindContinue
+                    .Format = False
+                    ' Si encuentra "EO"
+                    If .Execute Then
+                        ' Expandir el rango 8 caracteres después de "EO"
+                        rng.MoveEnd wdCharacter, 8
+                        ' Reemplazar todo el texto encontrado por "EO# 0####"
+                        rng.Text = "EO# 0####"
+                        Exit For ' Salir después de reemplazar la primera coincidencia en el pie de página
+                    End If
+                End With
+            Next hdrftr
+        Next sec
+
+        ' ---------------------------------------------------
+        ' 4. Guardar el documento con el nombre original
+        ' ---------------------------------------------------
+        doc.SaveAs2 saveFolderPath & "\" & fileName
+        doc.Close False
+        fileName = Dir ' Obtener el siguiente archivo
+    Loop
+
+    MsgBox "Proceso completado."
+
+End Sub
+
+
+
+

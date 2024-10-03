@@ -1,0 +1,346 @@
+Sub RedlineTREs()
+ Dim folderPath As String
+    Dim saveFolderPath As String
+    Dim fileName As String
+    Dim doc As Document
+    Dim textos_a_reemplazar As Variant
+    Dim texto_reemplazo As String
+    Dim sec As Section
+    Dim hdrftr As HeaderFooter
+    Dim newFileName As String
+    Dim fDialog As FileDialog
+    Dim texto As Variant
+    Dim tbl As Table
+    Dim newRow As Row
+    Dim cellTexts As Variant
+    Dim i As Integer
+    Dim j As Integer
+    Dim revNumber As String
+    Dim revStart As Long
+    Dim revEnd As Long
+    Dim foundTable As Boolean
+    
+        
+    ' Definir los textos a buscar y el texto de reemplazo
+    textos_a_reemplazar = Array("Hudson Respiratory Care Tecate", "Hudson RCI", "Hudson Respiratory Care", "Hudson")
+    texto_a_pintar = Array("Teleflex Tecate")
+    texto_completo = Array("Hudson Respiratory Care Tecate")
+  
+    
+    ' Solicitar al usuario que seleccione la carpeta con los documentos
+    Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
+    If fDialog.Show = -1 Then
+        folderPath = fDialog.SelectedItems(1)
+    Else
+        MsgBox "No se seleccionó ninguna carpeta. El proceso se cancela."
+        Exit Sub
+    End If
+    
+    
+    ' Solicitar al usuario que seleccione la carpeta de destino para guardar los documentos
+    Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
+    If fDialog.Show = -1 Then
+        saveFolderPath = fDialog.SelectedItems(1)
+    Else
+        MsgBox "No se seleccionó ninguna carpeta de destino. El proceso se cancela."
+        Exit Sub
+    End If
+    
+    
+    ' Buscar y reemplazar en cada documento de la carpeta
+    fileName = Dir(folderPath & "\*.doc") ' Puedes cambiar el filtro a *.doc si es necesario
+    
+    Do While fileName <> ""
+    ' Extraer el número o letra después de "Rev" o "rev"
+        ' Convertir el nombre del archivo a mayúsculas para la búsqueda
+        Dim fileNameUpper As String
+        fileNameUpper = UCase(fileName)
+        
+        revStart = InStr(fileNameUpper, "REV")
+        finalStart = InStr(fileNameUpper, "FINAL")
+         If revStart > 0 Then
+            ' Encontrar la posición del final del nombre del archivo antes de la extensión
+            revEnd = InStr(revStart, fileName, ".docx") ' Cambia a ".doc" si es necesario
+        
+            If revStart > 0 And finalStart > revStart Then
+                ' Extraer el número o texto entre "Rev" y "Final"
+                revNumber = Mid(fileName, revStart + 3, finalStart - revStart - 3)
+                
+            End If
+        End If
+        
+        ' Abrir el documento
+        Set doc = Documents.Open(folderPath & "\" & fileName, ReadOnly:=False, Visible:=False)
+        
+        '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+        ' Buscar y pintar de rojo y tachar
+        
+        For Each texto In textos_a_reemplazar
+            ' Reemplazo en el contenido del documento
+            With doc.Content.Find
+                .Text = texto
+                .Replacement.Text = texto
+                .Forward = True
+                .Wrap = wdFindContinue
+                .Format = True
+                .MatchCase = False
+                .MatchWholeWord = False
+                .MatchWildcards = False
+                .MatchSoundsLike = False
+                .MatchAllWordForms = False
+                .Replacement.Font.Color = wdColorRed
+                .Replacement.Font.StrikeThrough = True
+                .Execute Replace:=wdReplaceAll
+            End With
+
+        
+            ' Reemplazo en encabezados y pies de página
+            For Each sec In doc.Sections
+                For Each hdrftr In sec.Headers
+                    With hdrftr.Range.Find
+                        .Text = texto
+                        .Replacement.Text = texto
+                        .Forward = True
+                        .Wrap = wdFindContinue
+                        .Format = True
+                        .MatchCase = False
+                        .MatchWholeWord = False
+                        .MatchWildcards = False
+                        .MatchSoundsLike = False
+                        .MatchAllWordForms = False
+                        .Replacement.Font.Color = wdColorRed
+                        .Replacement.Font.StrikeThrough = True
+                        .Execute Replace:=wdReplaceAll
+                    End With
+                Next hdrftr
+                For Each hdrftr In sec.Footers
+                        With hdrftr.Range.Find
+                        .Text = texto
+                        .Replacement.Text = texto
+                        .Forward = True
+                        .Wrap = wdFindContinue
+                        .Format = True
+                        .MatchCase = False
+                        .MatchWholeWord = False
+                        .MatchWildcards = False
+                        .MatchSoundsLike = False
+                        .MatchAllWordForms = False
+                        .Replacement.Font.Color = wdColorRed
+                        .Replacement.Font.StrikeThrough = True
+                        .Execute Replace:=wdReplaceAll
+                    End With
+                Next hdrftr
+            Next sec
+        Next texto
+        
+        ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+        ''''''''''''''''''''''''''''''' Buscar y escribir
+                 
+        For Each texto In texto_completo
+            ' Reemplazo en el contenido del documento
+            With doc.Content.Find
+                .Text = texto
+                .Replacement.Text = texto & "Teleflex Tecate"
+                .Forward = True
+                .Wrap = wdFindContinue
+                .Format = True
+                .MatchCase = False
+                .MatchWholeWord = False
+                .MatchWildcards = False
+                .MatchSoundsLike = False
+                .MatchAllWordForms = False
+                .Replacement.Font.StrikeThrough = True
+                .Execute Replace:=wdReplaceAll
+            End With
+            
+            ' Reemplazo en encabezados y pies de página
+            For Each sec In doc.Sections
+                For Each hdrftr In sec.Headers
+                    With hdrftr.Range.Find
+                        .Text = texto
+                        .Replacement.Text = texto & "Teleflex Tecate"
+                        .Forward = True
+                        .Wrap = wdFindContinue
+                        .Format = True
+                        .MatchCase = False
+                        .MatchWholeWord = False
+                        .MatchWildcards = False
+                        .MatchSoundsLike = False
+                        .MatchAllWordForms = False
+                        .Replacement.Font.StrikeThrough = True
+                        .Execute Replace:=wdReplaceAll
+                    End With
+                Next hdrftr
+                For Each hdrftr In sec.Footers
+                        With hdrftr.Range.Find
+                        .Text = texto
+                        .Replacement.Text = texto & "Teleflex Tecate"
+                        .Forward = True
+                        .Wrap = wdFindContinue
+                        .Format = True
+                        .MatchCase = False
+                        .MatchWholeWord = False
+                        .MatchWildcards = False
+                        .MatchSoundsLike = False
+                        .MatchAllWordForms = False
+                        .Replacement.Font.StrikeThrough = True
+                        .Execute Replace:=wdReplaceAll
+                    End With
+                Next hdrftr
+            Next sec
+        Next texto
+        
+        
+
+        ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+         ' Buscar y pintar de azul
+        For Each texto In texto_a_pintar
+            ' Reemplazo en el contenido del documento
+            With doc.Content.Find
+                .Text = texto
+                .Replacement.Text = texto
+                .Forward = True
+                .Wrap = wdFindContinue
+                .Format = True
+                .MatchCase = False
+                .MatchWholeWord = False
+                .MatchWildcards = False
+                .MatchSoundsLike = False
+                .MatchAllWordForms = False
+                .Replacement.Font.Color = wdColorBlue
+                .Replacement.Font.StrikeThrough = False
+                .Execute Replace:=wdReplaceAll
+            End With
+            
+            ' Reemplazo en encabezados y pies de página
+            For Each sec In doc.Sections
+                For Each hdrftr In sec.Headers
+                    With hdrftr.Range.Find
+                        .Text = texto
+                        .Replacement.Text = texto
+                        .Forward = True
+                        .Wrap = wdFindContinue
+                        .Format = True
+                        .MatchCase = False
+                        .MatchWholeWord = False
+                        .MatchWildcards = False
+                        .MatchSoundsLike = False
+                        .MatchAllWordForms = False
+                        .Replacement.Font.Color = wdColorBlue
+                        .Replacement.Font.StrikeThrough = False
+                        .Execute Replace:=wdReplaceAll
+                    End With
+                Next hdrftr
+                For Each hdrftr In sec.Footers
+                        With hdrftr.Range.Find
+                        .Text = texto
+                        .Replacement.Text = texto
+                        .Forward = True
+                        .Wrap = wdFindContinue
+                        .Format = True
+                        .MatchCase = False
+                        .MatchWholeWord = False
+                        .MatchWildcards = False
+                        .MatchSoundsLike = False
+                        .MatchAllWordForms = False
+                        .Replacement.Font.Color = wdColorBlue
+                        .Replacement.Font.StrikeThrough = False
+                        .Execute Replace:=wdReplaceAll
+                    End With
+                Next hdrftr
+            Next sec
+        Next texto
+        
+        
+        
+        ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+If doc.Tables.Count > 0 Then
+    ' Recorrer todas las tablas del documento
+    For i = 1 To doc.Tables.Count
+        Set tbl = doc.Tables(i)
+        
+        ' Verificar si la tabla tiene al menos 5 columnas
+        If tbl.Columns.Count = 3 Then
+            ' Verificar si la tabla tiene los títulos esperados en inglés o español
+            If (Trim(tbl.Cell(1, 1).Range.Text) Like "*Revision*" And _
+                Trim(tbl.Cell(1, 2).Range.Text) Like "*Order*" And _
+                Trim(tbl.Cell(1, 3).Range.Text) Like "*Summary*") Or _
+               (Trim(tbl.Cell(1, 1).Range.Text) Like "*Nivel*" And _
+                Trim(tbl.Cell(1, 2).Range.Text) Like "*Orden*" And _
+                Trim(tbl.Cell(1, 3).Range.Text) Like "*Resumen*") Then
+                
+                ' Textos en inglés y español
+                es = "El documento ha sido actualizado a la última revisión de la plantilla local de Tecate, con la eliminación de ""Hudson Respiratory"" como parte del proyecto de cambio de marca. Se trata de un cambio administrativo, y el documento ahora cuenta con una nueva revisión."
+                ingles = "The document has been updated to the latest revision of the Tecate local template, with ""Hudson Respiratory"" removed as part of the rebranding project. This is an administrative change, and the document now has a new revision."
+                
+                ' Agregar una nueva fila al final de la tabla
+                Set newRow = tbl.Rows.Add
+                
+                ' Detectar el idioma en función de la columna 2
+               
+                If InStr(1, Trim(tbl.Cell(1, 3).Range.Text), "Summary of Changes", vbTextCompare) > 0 And _
+                   InStr(1, Trim(tbl.Cell(1, 3).Range.Text), "Resumen de Cambios", vbTextCompare) > 0 Then
+                    ' Ambos idiomas
+                    cellTexts = Array(revNumber, "", ingles & "/" & es)
+            
+                    
+                ElseIf InStr(1, Trim(tbl.Cell(1, 3).Range.Text), "Summary of Changes", vbTextCompare) > 0 Then
+                    ' Solo inglés
+                    cellTexts = Array(revNumber, "", ingles)
+                ElseIf InStr(1, Trim(tbl.Cell(1, 3).Range.Text), "Resumen de Cambios", vbTextCompare) > 0 Then
+                    ' Solo español
+                    cellTexts = Array(revNumber, "", es)
+                End If
+                
+                ' Asignar el texto correspondiente a cada celda de la nueva fila y establecer el color
+                For j = LBound(cellTexts) To UBound(cellTexts)
+                    newRow.Cells(j + 1).Range.Text = cellTexts(j)
+                    newRow.Cells(j + 1).Range.Font.Color = wdColorRed ' Cambiar el color de la fuente a rojo
+                Next j
+                
+                ' Cambiar la fuente del texto en la columna 3, comenzando desde el carácter 231
+                Dim myRange As Range
+                Set myRange = newRow.Cells(3).Range
+                
+                ' Eliminar el carácter de fin de celda
+                myRange.End = myRange.End - 1
+                
+                ' Asegurarse de que el rango tenga al menos 368 caracteres
+                If Len(myRange.Text) > 230 Then
+                    ' Establecer el rango desde el carácter 231 hasta el final
+                    Set myRange = myRange.Characters(231).Duplicate
+                    myRange.End = myRange.Start + 353 ' Extender el rango hasta el carácter 368 (137 caracteres más)
+                
+                    ' Cambiar la fuente de todo el rango desde el carácter 231 hasta el 368
+                    With myRange.Font
+                        .Name = "Times New Roman"
+                      ' Cambia el tamaño de la fuente según sea necesario
+                    End With
+                End If
+                
+                  
+
+            End If
+        End If
+    Next i
+End If
+        ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+        
+        ' Generar nuevo nombre de archivo con sufijo "Final"
+        newFileName = Replace(fileName, ".doc", " Redline.doc")
+        
+        ' Guardar el documento con el nuevo nombre
+        doc.SaveAs2 fileName:=saveFolderPath & "\" & newFileName, FileFormat:=wdFormatXMLDocument
+        
+        ' Cerrar el documento
+        doc.Close SaveChanges:=False
+        
+        ' Obtener el siguiente archivo
+        fileName = Dir
+    Loop
+    
+    MsgBox "Reemplazo completado y documentos guardados con sufijo 'Redline'."
+End Sub
+
+

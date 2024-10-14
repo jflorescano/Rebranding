@@ -22,6 +22,7 @@ Sub RedlineFINALWORD()
     Dim text1 As String
     Dim text2 As String
     Dim text3 As String
+    Dim rng As Range
         
     ' Definir los textos a buscar y el texto de reemplazo
     textos_a_reemplazar = Array("Hudson Respiratory Care Tecate", "Hudson RCI", "Hudson Respiratory Care", "Hudson")
@@ -82,19 +83,50 @@ Sub RedlineFINALWORD()
                 
                 ' Verifica si la tabla tiene al menos 2 filas y 4 columnas
                 If headerTable.Rows.Count >= 2 And headerTable.Columns.Count >= 4 Then
-                     
-                     text3 = headerTable.Cell(4, 2).Range.Text
-                    ' Cambia el color del texto de la celda (2,2) a azul
-                    headerTable.Cell(4, 2).Range.Font.Color = wdColorRed
-                    headerTable.Cell(4, 2).Range.Copy
-                    text1 = headerTable.Cell(2, 2).Range.Text
-                    headerTable.Cell(4, 2).Range.Font.Color = wdColorBlue
-                    headerTable.Cell(4, 2).Range.PasteAndFormat (wdFormatPlainText)
+                
                     
-                    ' Cambia el color del texto de la celda (4,3) a azul
-                    headerTable.Cell(4, 3).Range.Font.Color = wdColorBlue
+                    ' Define el texto para text3
+                    text3 = headerTable.Cell(4, 2).Range.Text
+                    text1 = headerTable.Cell(2, 2).Range.Text
                     text2 = headerTable.Cell(4, 3).Range.Text
-                    headerTable.Cell(4, 2).Range.Text = text3 & " " & text1 & " " & "EO#" & text2
+                    
+                    ' Borra el contenido actual de la celda (4, 2)
+                    headerTable.Cell(4, 2).Range.Delete
+                    
+                    ' Establece el rango de la celda (4, 2)
+                    Set rng = headerTable.Cell(4, 2).Range
+                    
+                    ' Elimina el marcador de fin de celda
+                    rng.End = rng.End - 1
+                    
+                    ' Inserta text3 (texto en rojo)
+                    rng.InsertAfter text3
+                    rng.Font.Color = wdColorRed
+                    rng.Font.StrikeThrough = True
+                    
+                    ' Mueve el cursor al final del texto y añade un espacio
+                    rng.Collapse Direction:=wdCollapseEnd
+                    rng.InsertAfter " "
+                    
+                    ' Inserta text1 (texto en azul)
+                    rng.InsertAfter text1
+                    rng.Font.Color = wdColorBlue
+                    
+                    ' Mueve el cursor al final del texto y añade un espacio
+                    rng.Collapse Direction:=wdCollapseEnd
+                    rng.InsertAfter " "
+                    
+                    ' Inserta "EO#" (también en azul)
+                    rng.InsertAfter "EO#"
+                    rng.Font.Color = wdColorBlue
+                    
+                    ' Mueve el cursor al final del texto y añade un espacio
+                    rng.Collapse Direction:=wdCollapseEnd
+                    rng.InsertAfter " "
+                    
+                    ' Inserta text2 (también en azul)
+                    rng.InsertAfter text2
+                    rng.Font.Color = wdColorBlue
 
                     ' Borra todo el contenido en la celda (fila 1, columna 2)
                     headerTable.Cell(2, 2).Range.Font.Color = wdColorRed
@@ -393,7 +425,4 @@ End If
     
     MsgBox "Reemplazo completado y documentos guardados con sufijo 'Redline'."
 End Sub
-
-
-
 

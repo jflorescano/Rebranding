@@ -1,0 +1,239 @@
+Sub FinalFINALWORD()
+    Dim folderPath As String
+    Dim saveFolderPath As String
+    Dim fileName As String
+    Dim doc As Document
+    Dim textos_a_reemplazar As Variant
+    Dim texto_reemplazo As String
+    Dim sec As Section
+    Dim hdrftr As HeaderFooter
+    Dim newFileName As String
+    Dim fDialog As FileDialog
+    Dim texto As Variant
+    Dim tbl As Table
+    Dim newRow As Row
+    Dim cellTexts As Variant
+    Dim i As Integer
+    Dim tblFound As Boolean ' Variable para controlar si se encontró la tabla correcta
+    Dim headerTable As Table
+    Dim k As Long
+    Dim hdr As HeaderFooter
+    Dim text1 As String
+    Dim text2 As String
+    
+
+
+    ' Definir los textos a buscar y el texto de reemplazo
+    textos_a_reemplazar = Array("Hudson Respiratory Care Tecate", "Hudson RCI", "Hudson Respiratory Care")
+    texto_reemplazo = "Teleflex Tecate"
+    ' Solicitar al usuario que seleccione la carpeta con los documentos
+    Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
+    If fDialog.Show = -1 Then
+        folderPath = fDialog.SelectedItems(1)
+    Else
+        MsgBox "No se seleccionó ninguna carpeta. El proceso se cancela."
+        Exit Sub
+    End If
+    ' Solicitar al usuario que seleccione la carpeta de destino para guardar los documentos
+    Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
+    If fDialog.Show = -1 Then
+        saveFolderPath = fDialog.SelectedItems(1)
+    Else
+        MsgBox "No se seleccionó ninguna carpeta de destino. El proceso se cancela."
+        Exit Sub
+    End If
+    ' Buscar y reemplazar en cada documento de la carpeta
+    fileName = Dir(folderPath & "\*.doc") ' Puedes cambiar el filtro a *.doc si es necesario
+    Do While fileName <> ""
+        
+        Dim fileNameUpper As String
+        fileNameUpper = UCase(fileName)
+        
+        revStart = InStr(fileNameUpper, "REV")
+        If revStart > 0 Then
+            ' Encontrar la posición del final del nombre del archivo antes de la extensión
+            revEnd = InStr(revStart, fileName, ".doc") ' Cambia a ".doc" si es necesario
+        
+            ' Extraer el número/revisión
+            If revEnd > 0 Then
+                revNumber = Mid(fileName, revStart + 3, revEnd - revStart - 3) ' Extrae todo después de "Rev" o "rev"
+            End If
+        End If
+        
+        
+        ' Abrir el documento
+        Set doc = Documents.Open(folderPath & "\" & fileName, ReadOnly:=False, Visible:=False)
+        
+            
+            ' Verifica el encabezado de la primera página en la sección 1
+            Set hdr = doc.Sections(1).Headers(wdHeaderFooterFirstPage)
+            
+            ' Verifica si el encabezado tiene tablas
+            If hdr.Range.Tables.Count > 0 Then
+                ' Toma la primera tabla del encabezado
+                Set headerTable = hdr.Range.Tables(1)
+                
+                ' Verifica si la tabla tiene al menos 2 filas y 4 columnas
+                If headerTable.Rows.Count >= 2 And headerTable.Columns.Count >= 4 Then
+                    
+                    text1 = headerTable.Cell(2, 2).Range.Text
+                    
+                    text2 = headerTable.Cell(4, 3).Range.Text
+
+                    ' Borra contenido en la celda fila  columna 2'
+                    headerTable.Cell(4, 2).Range.Delete
+                    ' Borra todo el contenido en la celda (fila 1, columna 2)
+                    headerTable.Cell(2, 2).Range.Delete
+                    ' Borra todo el contenido en la celda (fila 1, columna 3 - la celda que contiene la fecha)
+                    headerTable.Cell(4, 3).Range.Delete
+                    headerTable.Cell(4, 2).Range.Text = text1 & " " & "EO#" & text2
+                Else
+                    MsgBox "La tabla en el encabezado no tiene el tamaño esperado (2 filas, 4 columnas) en el documento: " & doc.Name
+                End If
+            Else
+                MsgBox "No se encontraron tablas en el encabezado de la primera página del documento: " & doc.Name
+            End If
+        ' Buscar y reemplazar texto en todo el documento
+        For Each texto In textos_a_reemplazar
+            ' Reemplazo en el contenido del documento
+            With doc.Content.Find
+                .Text = texto
+                .Replacement.Text = texto_reemplazo
+                .Forward = True
+                .Wrap = wdFindContinue
+                .Format = False
+                .MatchCase = False
+                .MatchWholeWord = False
+                .MatchWildcards = False
+                .MatchSoundsLike = False
+                .MatchAllWordForms = False
+                .Execute Replace:=wdReplaceAll
+            End With
+            ' Reemplazo en encabezados y pies de página
+            For Each sec In doc.Sections
+                For Each hdrftr In sec.Headers
+                    With hdrftr.Range.Find
+                        .Text = texto
+                        .Replacement.Text = texto_reemplazo
+                        .Forward = True
+                        .Wrap = wdFindStop
+                        .Format = False
+                        .MatchCase = False
+                        .MatchWholeWord = False
+                        .MatchWildcards = False
+                        .MatchSoundsLike = False
+                        .MatchAllWordForms = False
+                        .Execute Replace:=wdReplaceAll
+                    End With
+                Next hdrftr
+                For Each hdrftr In sec.Footers
+                    With hdrftr.Range.Find
+                        .Text = texto
+                        .Replacement.Text = texto_reemplazo
+                        .Forward = True
+                        .Wrap = wdFindStop
+                        .Format = False
+                        .MatchCase = False
+                        .MatchWholeWord = False
+                        .MatchWildcards = False
+                        .MatchSoundsLike = False
+                        .MatchAllWordForms = False
+                        .Execute Replace:=wdReplaceAll
+                    End With
+                Next hdrftr
+            Next sec
+        Next texto
+   '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+If doc.Tables.Count > 0 Then
+    ' Recorrer todas las tablas del documento
+    For i = 1 To doc.Tables.Count
+        Set tbl = doc.Tables(i)
+        
+        ' Verificar si la tabla tiene al menos 5 columnas
+        If tbl.Columns.Count = 5 Then
+            ' Verificar si la tabla tiene los títulos esperados en inglés o español
+            If (Trim(tbl.Cell(1, 1).Range.Text) Like "*EO*" And _
+                Trim(tbl.Cell(1, 2).Range.Text) Like "*Date*" And _
+                Trim(tbl.Cell(1, 3).Range.Text) Like "*Description*" And _
+                Trim(tbl.Cell(1, 4).Range.Text) Like "*Originator*" And _
+                Trim(tbl.Cell(1, 5).Range.Text) Like "*Rev*") Or _
+               (Trim(tbl.Cell(1, 1).Range.Text) Like "*EO*" And _
+                Trim(tbl.Cell(1, 2).Range.Text) Like "*Fecha*" And _
+                Trim(tbl.Cell(1, 3).Range.Text) Like "*Descripci*" And _
+                Trim(tbl.Cell(1, 4).Range.Text) Like "*Originador*" And _
+                Trim(tbl.Cell(1, 5).Range.Text) Like "*Rev*") Or _
+               (Trim(tbl.Cell(1, 1).Range.Text) Like "*EO*" And _
+                Trim(tbl.Cell(1, 2).Range.Text) Like "*Date/Fecha*" And _
+                Trim(tbl.Cell(1, 3).Range.Text) Like "*Description/Descripci*" And _
+                Trim(tbl.Cell(1, 4).Range.Text) Like "*Originador/Originador*" And _
+                Trim(tbl.Cell(1, 5).Range.Text) Like "*Rev*") Then
+                
+                ' Textos en inglés y español
+                es = "El documento ha sido actualizado a la última revisión de la plantilla local de Tecate, con la eliminación de ""Hudson Respiratory"" como parte del proyecto de cambio de marca. Se trata de un cambio administrativo, y el documento conserva la misma revisión."
+                ingles = "The document has been updated to the latest revision of the Tecate local template, with ""Hudson Respiratory"" removed as part of the rebranding project. This is an administrative change, and the document retains the same revision."
+                
+                ' Agregar una nueva fila al final de la tabla
+                Set newRow = tbl.Rows.Add
+                
+                ' Detectar el idioma en función de la columna 2
+               
+                If InStr(1, Trim(tbl.Cell(1, 2).Range.Text), "Date", vbTextCompare) > 0 And _
+                   InStr(1, Trim(tbl.Cell(1, 2).Range.Text), "Fecha", vbTextCompare) > 0 Then
+                    ' Ambos idiomas
+                    cellTexts = Array("", "", ingles & "/" & es, "Ba. Arias", revNumber)
+            
+                    
+                ElseIf InStr(1, Trim(tbl.Cell(1, 2).Range.Text), "Date", vbTextCompare) > 0 Then
+                    ' Solo inglés
+                    cellTexts = Array("", "", ingles, "Ba. Arias", revNumber)
+                ElseIf InStr(1, Trim(tbl.Cell(1, 2).Range.Text), "Fecha", vbTextCompare) > 0 Then
+                    ' Solo español
+                    cellTexts = Array("", "", es, "Ba. Arias", revNumber)
+                End If
+                
+                ' Asignar el texto correspondiente a cada celda de la nueva fila y establecer el color
+                For j = LBound(cellTexts) To UBound(cellTexts)
+                    newRow.Cells(j + 1).Range.Text = cellTexts(j)
+                   
+                Next j
+                
+                ' Cambiar la fuente del texto en la columna 3, comenzando desde el carácter 231
+                Dim myRange As Range
+                Set myRange = newRow.Cells(3).Range
+                
+                ' Eliminar el carácter de fin de celda
+                myRange.End = myRange.End - 1
+                
+                ' Asegurarse de que el rango tenga al menos 368 caracteres
+                If Len(myRange.Text) > 230 Then
+                    ' Establecer el rango desde el carácter 231 hasta el final
+                    Set myRange = myRange.Characters(231).Duplicate
+                    myRange.End = myRange.Start + 353 ' Extender el rango hasta el carácter 368 (137 caracteres más)
+                
+                    ' Cambiar la fuente de todo el rango desde el carácter 231 hasta el 368
+                    With myRange.Font
+                        .Name = "Times New Roman"
+                        
+                    End With
+                End If
+                
+                  
+
+            End If
+        End If
+    Next i
+End If
+
+        
+        ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+        
+        ' Guardar el documento con el mismo nombre en la carpeta de destino
+        doc.SaveAs2 fileName:=saveFolderPath & "\" & fileName, FileFormat:=wdFormatXMLDocument
+        ' Cerrar el documento
+        doc.Close SaveChanges:=False
+        ' Obtener el siguiente archivo
+        fileName = Dir
+    Loop
+    MsgBox "Reemplazo completado y documentos guardados en la carpeta seleccionada."
+End Sub
+

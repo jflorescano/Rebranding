@@ -1,0 +1,110 @@
+Sub FinalForms()
+ 
+    Dim folderPath As String
+    Dim saveFolderPath As String
+    Dim fileName As String
+    Dim doc As Document
+    Dim sec As Section
+    Dim hdrftr As HeaderFooter
+    Dim rng As Range
+    Dim fDialog As FileDialog
+    Dim textoEncabezado As String
+    Dim textoTeleflex As String
+    Dim text1 As String
+    Dim text2 As String
+    'Dim eoNumber As String
+
+ 
+    ' Establecer los textos a buscar
+    textoEncabezado = "Hudson Respiratory Care Inc."
+    textoTeleflex = "Teleflex Tecate"
+ 
+    ' Solicitar al usuario que seleccione la carpeta con los documentos
+    Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
+    If fDialog.Show = -1 Then
+        folderPath = fDialog.SelectedItems(1)
+    Else
+        MsgBox "No se seleccionó ninguna carpeta. El proceso se cancela."
+        Exit Sub
+    End If
+    ' Solicitar al usuario que seleccione la carpeta de destino para guardar los documentos
+    Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
+    If fDialog.Show = -1 Then
+        saveFolderPath = fDialog.SelectedItems(1)
+    Else
+        MsgBox "No se seleccionó ninguna carpeta de destino. El proceso se cancela."
+        Exit Sub
+    End If
+ 
+    ' Buscar y reemplazar en cada documento de la carpeta
+    fileName = Dir(folderPath & "\*.doc") ' También puedes usar *.doc para archivos más antiguos
+ 
+    Do While fileName <> ""
+        ' Abrir el documento
+        Set doc = Documents.Open(folderPath & "\" & fileName, ReadOnly:=False, Visible:=False)
+        ' Modificar los primeros tres renglones
+        ' Obtener el texto después de "Effective:" en el primer renglón
+        Set rng = doc.Paragraphs(1).Range
+        If rng.Find.Execute(FindText:="Effective:") Then
+            rng.SetRange Start:=rng.End, End:=doc.Paragraphs(1).Range.End
+            text1 = rng.text
+            rng.Delete ' Eliminar el texto
+        End If
+        ' Obtener el texto después de "EO:" en el segundo renglón
+Set rng = doc.Paragraphs(2).Range
+If rng.Find.Execute(FindText:="EO:") Then
+    ' Ajustar el rango para que solo seleccione el texto después de "EO:"
+    rng.SetRange Start:=rng.End, End:=doc.Paragraphs(2).Range.End
+    ' Eliminar el texto existente después de "EO:"
+    rng.Delete
+    ' Colapsar el rango para asegurarnos de que estamos insertando el nuevo texto justo después de "EO:"
+    rng.Collapse Direction:=wdCollapseEnd
+    ' Insertar el nuevo texto "EO# #####"
+    rng.text = "EO# #####"
+    ' Cambiar el color del texto a negro
+    rng.Font.Color = wdColorBlack
+End If
+ 
+        
+        ' ---------------------------------------------------
+        ' 1. Cambiar el texto en el cuerpo del documento
+        ' ---------------------------------------------------
+        With doc.Content.Find
+            .text = textoEncabezado
+            .Replacement.text = textoTeleflex
+            .Forward = True
+            .Wrap = wdFindContinue
+            .Format = True
+            .Execute Replace:=wdReplaceAll
+        End With
+ 
+        ' ---------------------------------------------------
+        ' 2. Cambiar el texto en los encabezados de todas las secciones (sin cambiar el resto del encabezado)
+        ' ---------------------------------------------------
+        For Each sec In doc.Sections
+            For Each hdrftr In sec.Headers
+                Set rng = hdrftr.Range
+                With rng.Find
+                    .text = textoEncabezado
+                    .Replacement.text = textoTeleflex
+                    .Forward = True
+                    .Wrap = wdFindContinue
+                    .Format = True
+                    .Execute Replace:=wdReplaceAll
+                End With
+            Next hdrftr
+        Next sec
+ 
+       
+ 
+        ' ---------------------------------------------------
+        ' 4. Guardar el documento con el nombre original
+        ' ---------------------------------------------------
+        doc.SaveAs2 saveFolderPath & "\" & fileName
+        doc.Close False
+        fileName = Dir ' Obtener el siguiente archivo
+    Loop
+ 
+    MsgBox "Terminado:)"
+ 
+End Sub

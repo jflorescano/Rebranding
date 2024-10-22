@@ -1,0 +1,187 @@
+Sub ModifyFirstThreeLines()
+    Dim rng As Range
+    Dim text1 As String
+    Dim text2 As String
+    Dim text3 As String
+    Dim eoNumber As String
+    Dim doc As Document
+    Dim folderPath As String
+    Dim saveFolderPath As String
+    Dim fileName As String
+    Dim newFileName As String
+    Dim fDialog As FileDialog
+    Dim textoEncabezado As String
+    Dim textoTeleflex As String
+    
+    ' Establecer los textos a buscar
+    textoEncabezado = "Hudson Respiratory Care Inc."
+    textoTeleflex = "Teleflex Tecate"
+    
+    ' Solicitar al usuario que seleccione la carpeta con los documentos
+    Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
+    If fDialog.Show = -1 Then
+        folderPath = fDialog.SelectedItems(1)
+    Else
+        MsgBox "No se seleccionó ninguna carpeta. El proceso se cancela."
+        Exit Sub
+    End If
+    
+    ' Solicitar al usuario que seleccione la carpeta de destino para guardar los documentos
+    Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
+    If fDialog.Show = -1 Then
+        saveFolderPath = fDialog.SelectedItems(1)
+    Else
+        MsgBox "No se seleccionó ninguna carpeta de destino. El proceso se cancela."
+        Exit Sub
+    End If
+
+    ' Buscar y reemplazar en cada documento de la carpeta
+    fileName = Dir(folderPath & "\*.doc*") ' Buscar archivos .doc y .docx
+
+    Do While fileName <> ""
+        ' Abrir el documento
+        Set doc = Documents.Open(folderPath & "\" & fileName, ReadOnly:=False, Visible:=False)
+        
+        ' Modificar los primeros tres renglones
+        ' Obtener el texto después de "Effective:" en el primer renglón
+        Set rng = doc.Paragraphs(1).Range
+        If rng.Find.Execute(FindText:="Effective:") Then
+            rng.SetRange Start:=rng.End, End:=doc.Paragraphs(1).Range.End
+            text1 = rng.text
+            rng.Font.StrikeThrough = True  ' Aplicar tachado al texto
+            rng.Font.Color = wdColorRed    ' Aplicar color rojo al texto
+        End If
+        
+        ' Obtener el texto después de "EO:" en el segundo renglón
+        Set rng = doc.Paragraphs(2).Range
+        If rng.Find.Execute(FindText:="EO:") Then
+            rng.SetRange Start:=rng.End, End:=doc.Paragraphs(2).Range.End
+            text2 = rng.text
+            rng.Font.StrikeThrough = True  ' Aplicar tachado al texto
+            rng.Font.Color = wdColorRed    ' Aplicar color rojo al texto
+            
+            ' Agregar el número EO en azul después del texto tachado
+            rng.Collapse Direction:=wdCollapseEnd
+            eoNumber = " EO# ##### " ' Puedes reemplazarlo con un número dinámico si es necesario
+            rng.text = " " & eoNumber
+            rng.Font.Color = wdColorBlue  ' Aplicar color azul al número EO
+        End If
+    
+    ' Obtener el texto después de "Supersedes:" en el tercer renglón
+        Set rng = doc.Paragraphs(3).Range
+        If rng.Find.Execute(FindText:="Supersedes:") Then
+            rng.SetRange Start:=rng.End, End:=doc.Paragraphs(3).Range.End
+            text3 = rng.text
+            rng.Font.StrikeThrough = True  ' Aplicar tachado al texto
+            rng.Font.Color = wdColorRed    ' Aplicar color rojo al texto
+        End If
+        
+      ' Mover los textos tachados al tercer renglón
+Set rng = doc.Paragraphs(3).Range
+rng.Collapse Direction:=wdCollapseEnd
+
+' Limpiar espacios en blanco en text1 y text2
+text1 = Trim(text1)
+text2 = Trim(text2)
+
+' Asegurarte de que el rango del tercer párrafo no tenga texto existente
+If Len(rng.text) > 0 Then
+    rng.InsertAfter vbCrLf ' Asegúrate de que haya un salto de línea solo si el párrafo no está vacío
+End If
+
+' Insertar el texto sin salto de línea y sin espacios extra
+rng.InsertAfter text1 & " / EO# " & text2
+
+' Limpiar saltos de página en el tercer párrafo
+With doc.Paragraphs(3).Range.Find
+    .text = "^m" ' Salto de página
+    .Replacement.text = ""
+    .Execute Replace:=wdReplaceAll
+End With
+
+' Establecer rango para el nuevo texto y aplicar color azul
+rng.SetRange Start:=rng.End - Len(text1 & " / EO# " & text2), End:=rng.End
+rng.Font.Color = wdColorBlue  ' Aplicar color azul solo al texto agregado
+
+
+        ' ---------------------------------------------------
+        ' Buscar "Hudson Respiratory Care Inc." en el cuerpo del documento
+        ' ---------------------------------------------------
+        With doc.Content.Find
+            .text = textoEncabezado
+            .Replacement.text = textoEncabezado & " Teleflex Tecate"
+            .Forward = True
+            .Wrap = wdFindContinue
+            .Format = True
+            .Replacement.Font.Color = wdColorRed ' Aplicar color rojo al texto tachado
+            .Replacement.Font.StrikeThrough = True
+            .Execute Replace:=wdReplaceAll
+        End With
+        ' ---------------------------------------------------
+        ' 2. Buscar en los encabezados de todas las secciones
+        ' ---------------------------------------------------
+        For Each sec In doc.Sections
+            For Each hdrftr In sec.Headers
+                Set rng = hdrftr.Range
+                With rng.Find
+                    .text = textoEncabezado
+                    .Replacement.text = textoEncabezado & " Teleflex Tecate"
+                    .Forward = True
+                    .Wrap = wdFindContinue
+                    .Format = True
+                    .Replacement.Font.Color = wdColorRed ' Cambiar a rojo
+                    .Replacement.Font.StrikeThrough = True
+                    .MatchWholeWord = False
+                    .MatchCase = False
+                    ' Ejecutar el reemplazo solo si no contiene el texto añadido
+                    If InStr(rng.text, textoEncabezado & " Teleflex Tecate") = 0 Then
+                        .Execute Replace:=wdReplaceAll
+                    End If
+                End With
+            Next hdrftr
+        Next sec
+        
+        ' Reemplazar "Teleflex Tecate" con color azul
+        With doc.Content.Find
+            .text = "Teleflex Tecate"
+            .Replacement.text = "Teleflex Tecate"
+            .Forward = True
+            .Wrap = wdFindContinue
+            .Format = True
+            .Replacement.Font.Color = wdColorBlue ' Aplicar color azul
+            .Replacement.Font.StrikeThrough = False
+            .Execute Replace:=wdReplaceAll
+        End With
+          ' Buscar en los encabezados de todas las secciones
+        For Each sec In doc.Sections
+            For Each hdrftr In sec.Headers
+                Set rng = hdrftr.Range
+                With rng.Find
+                    .text = textoTeleflex
+                    .Replacement.text = textoTeleflex
+                    .Forward = True
+                    .Wrap = wdFindContinue
+                    .Format = True
+                    .Replacement.Font.Color = wdColorBlue ' Cambiar a azul
+                    .Replacement.Font.StrikeThrough = False
+                    .Execute Replace:=wdReplaceAll
+                End With
+            Next hdrftr
+        Next sec
+
+        ' ---------------------------------------------------
+        ' Guardar el documento con el prefijo "Redline"
+        ' ---------------------------------------------------
+        newFileName = Replace(fileName, ".doc", " Redline.doc")
+        doc.SaveAs2 fileName:=saveFolderPath & "\" & newFileName, FileFormat:=wdFormatXMLDocument
+
+        ' Cerrar el documento
+        doc.Close SaveChanges:=False
+
+        ' Obtener el siguiente archivo
+        fileName = Dir
+    Loop
+
+    MsgBox "Proceso completado y documentos guardados con el prefijo 'Redline'."
+
+End Sub
